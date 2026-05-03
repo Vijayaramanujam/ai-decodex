@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.config import config
-from src.api.routes import ingest, query, health
+from src.api.routes import ingest, query, health, agent_routes
 
 app = FastAPI(
     title="ExamIntel RAG Service",
@@ -22,6 +22,7 @@ app.add_middleware(
 # Include Routers
 app.include_router(ingest.router, prefix="/api/v1", tags=["Ingestion"])
 app.include_router(query.router, prefix="/api/v1", tags=["Query"])
+app.include_router(agent_routes.router, prefix="/api", tags=["Agent System"])
 app.include_router(health.router, tags=["Health"])
 
 @app.get("/")

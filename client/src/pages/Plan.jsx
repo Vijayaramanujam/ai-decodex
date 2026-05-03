@@ -1,211 +1,109 @@
+import React, { useEffect, useState } from 'react';
 import Header from '../components/Header';
-import { useParams } from 'react-router-dom';
-import { useEffect, useState } from 'react';
-import { planAPI } from '../api/client';
-import { motion } from 'framer-motion';
-import { Calendar, CheckSquare, Target, Loader2, Clock, BookOpen, Zap, TrendingUp, AlertTriangle } from 'lucide-react';
-import './Plan.css';
+import axios from 'axios';
+import { Calendar, CheckCircle2, Clock, BookOpen, Download } from 'lucide-react';
 
 const Plan = () => {
-    const { planId } = useParams();
-    const [plan, setPlan] = useState(null);
-    const [loading, setLoading] = useState(true);
+  const [plan, setPlan] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-    useEffect(() => {
-        const fetchPlan = async () => {
-            try {
-                const res = await planAPI.getById(planId);
-                setPlan(res.data);
-            } catch (err) {
-                console.error(err);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchPlan();
-    }, [planId]);
+  useEffect(() => {
+    const generatePlan = async () => {
+      setLoading(true);
+      try {
+        const res = await axios.post('http://localhost:8000/api/plan', { days: 7 });
+        setPlan(res.data.data);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    generatePlan();
+  }, []);
 
-    if (loading) return (
-        <div className="loading-screen">
-            <Loader2 className="spin" size={48} />
-            <div className="loading-text">DECYPHERING RECOVERY PATH...</div>
-        </div>
-    );
-
-    if (!plan) return <div className="error-screen">PLAN NOT FOUND // 404</div>;
-
-    const planData = typeof plan.plan === 'string' ? JSON.parse(plan.plan) : plan.plan;
-    const { 
-        summary = {}, 
-        prioritizedTopics = [], 
-        weeklySchedule = [], 
-        recommendations = [],
-        examStrategy = {},
-        metadata = {}
-    } = planData || {};
-
+  if (loading || !plan) {
     return (
-        <div className="plan-page">
-            <Header />
-            <main className="container plan-container">
-                <motion.div 
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="plan-header"
-                >
-                    <div className="plan-id">PLAN-ID: {planId.slice(0,8).toUpperCase()}</div>
-                    <h1 className="plan-title">AI RECOVERY PLAN</h1>
-                    <div className="plan-meta">
-                        <div className="meta-item">
-                            <Target size={18} />
-                            <span>{metadata.subject || 'Subject'}</span>
-                        </div>
-                        <div className="meta-item">
-                            <Calendar size={18} />
-                            <span>{metadata.daysUntilExam || 0} Days Until Exam</span>
-                        </div>
-                        <div className="meta-item">
-                            <Clock size={18} />
-                            <span>{summary.studyHoursPerDay || 0}h/day</span>
-                        </div>
-                        <div className="meta-item">
-                            <TrendingUp size={18} />
-                            <span>{summary.confidence || 'Medium'} Confidence</span>
-                        </div>
-                    </div>
-                </motion.div>
-
-                {recommendations && recommendations.length > 0 && (
-                    <section className="recommendations-section">
-                        <h2><Zap size={20} /> KEY RECOMMENDATIONS</h2>
-                        <div className="recommendations-grid">
-                            {recommendations.map((rec, i) => (
-                                <div key={i} className={`rec-card rec-${rec.type}`}>
-                                    {rec.type === 'critical' && <AlertTriangle size={16} />}
-                                    {rec.type === 'warning' && <AlertTriangle size={16} />}
-                                    {rec.type === 'tip' && <BookOpen size={16} />}
-                                    <p>{rec.message}</p>
-                                </div>
-                            ))}
-                        </div>
-                    </section>
-                )}
-
-                <div className="plan-grid">
-                    <section className="topics-section">
-                        <h2><Target size={20} /> PRIORITY TOPICS</h2>
-                        <div className="topics-list">
-                            {prioritizedTopics.slice(0, 10).map((topic, i) => (
-                                <motion.div 
-                                    key={i} 
-                                    initial={{ opacity: 0, x: -20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ delay: i * 0.05 }}
-                                    className="topic-card"
-                                >
-                                    <div className="topic-header">
-                                        <div className="topic-index">#{i+1}</div>
-                                        <div className="topic-name">{topic.name}</div>
-                                        <div className={`difficulty difficulty-${topic.difficulty?.toLowerCase()}`}>
-                                            {topic.difficulty || 'Medium'}
-                                        </div>
-                                    </div>
-                                    <div className="topic-stats">
-                                        <span className="stat">Priority: {topic.priority?.toFixed(1) || 0}</span>
-                                        <span className="stat">PYQ Freq: {topic.pyqFrequency || 0}x</span>
-                                        <span className="stat">{topic.hoursNeeded || 0}h needed</span>
-                                        <span className="stat">Est. {topic.estimatedMarks || 0} marks</span>
-                                    </div>
-                                    {topic.strategy && topic.strategy.length > 0 && (
-                                        <div className="topic-strategy">
-                                            {topic.strategy.slice(0, 2).map((tip, idx) => (
-                                                <div key={idx} className="strategy-tip">
-                                                    <CheckSquare size={14} /> {tip}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </motion.div>
-                            ))}
-                        </div>
-                    </section>
-
-                    <section className="schedule-section">
-                        <h2><Calendar size={20} /> WEEKLY SCHEDULE</h2>
-                        <div className="weekly-timeline">
-                            {weeklySchedule.map((week, weekIdx) => (
-                                <div key={weekIdx} className="week-block">
-                                    <h3 className="week-header">Week {week.week} - {week.focus}</h3>
-                                    <div className="daily-schedule">
-                                        {week.dailyPlan?.map((day, dayIdx) => (
-                                            <div key={dayIdx} className="day-card">
-                                                <div className="day-header">
-                                                    <span>{day.day}</span>
-                                                    <span className="day-hours">{day.hours}h</span>
-                                                </div>
-                                                <div className="day-content">
-                                                    <div className="day-topics">
-                                                        {day.topics?.map((topic, idx) => (
-                                                            <span key={idx} className="day-topic">{topic}</span>
-                                                        ))}
-                                                    </div>
-                                                    <div className="day-activities">
-                                                        {day.activities?.slice(0, 3).map((activity, idx) => (
-                                                            <div key={idx} className="activity">
-                                                                <CheckSquare size={12} /> {activity}
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </section>
-                </div>
-
-                {examStrategy && Object.keys(examStrategy).length > 0 && (
-                    <section className="exam-strategy-section">
-                        <h2><Zap size={20} /> EXAM STRATEGY</h2>
-                        <div className="strategy-grid">
-                            {examStrategy.lastWeek && (
-                                <div className="strategy-block">
-                                    <h3>Last Week</h3>
-                                    <ul>
-                                        {examStrategy.lastWeek.map((tip, i) => (
-                                            <li key={i}>{tip}</li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            )}
-                            {examStrategy.lastDay && (
-                                <div className="strategy-block">
-                                    <h3>Last Day</h3>
-                                    <ul>
-                                        {examStrategy.lastDay.map((tip, i) => (
-                                            <li key={i}>{tip}</li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            )}
-                            {examStrategy.examDay && (
-                                <div className="strategy-block">
-                                    <h3>Exam Day</h3>
-                                    <ul>
-                                        {examStrategy.examDay.map((tip, i) => (
-                                            <li key={i}>{tip}</li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            )}
-                        </div>
-                    </section>
-                )}
-            </main>
-        </div>
+      <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center justify-center font-sans">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500 mb-4"></div>
+        <p className="text-xl font-medium">CrewAI Agents are finalizing your personalized plan...</p>
+      </div>
     );
+  }
+
+  // Parse daily schedule mock text into something rendered nicely
+  const parseSchedule = (scheduleText) => {
+    return scheduleText.split('.').filter(s => s.trim()).map(s => s.trim());
+  };
+
+  const scheduleItems = parseSchedule(plan.daily_schedule);
+
+  return (
+    <div className="min-h-screen bg-gray-900 text-white font-sans pb-16">
+      <Header />
+      <main className="container mx-auto px-4 py-8 max-w-4xl">
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-3xl font-bold">Your AI Study Plan</h1>
+            <p className="text-gray-400">Optimized for high-yield topics over {plan.timeline_days} days</p>
+          </div>
+          <button className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 py-2 px-4 rounded-lg font-medium border border-gray-600 transition-colors text-sm">
+            <Download size={16} /> Export PDF
+          </button>
+        </div>
+
+        {/* Priority Topics Section */}
+        <section className="mb-10">
+          <h2 className="text-xl font-bold flex items-center gap-2 border-b border-gray-700 pb-2 mb-4">
+            <TargetIcon /> High Priority Topics (Must Master)
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {plan.priority_topics.map((topic, i) => (
+              <div key={i} className="bg-red-500/10 border border-red-500/30 p-4 rounded-lg flex items-start gap-3">
+                <CheckCircle2 className="text-red-400 shrink-0 mt-0.5" size={20} />
+                <span className="font-medium text-red-50">{topic}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Timeline Section */}
+        <section>
+          <h2 className="text-xl font-bold flex items-center gap-2 border-b border-gray-700 pb-2 mb-6">
+            <Calendar size={24} className="text-blue-400" /> Day-by-Day Roadmap
+          </h2>
+          
+          <div className="space-y-6 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-blue-500/50 before:to-transparent">
+            {scheduleItems.map((item, i) => (
+              <div key={i} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
+                {/* Timeline dot */}
+                <div className="flex items-center justify-center w-10 h-10 rounded-full border-4 border-gray-900 bg-blue-500 text-white shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10">
+                  {i + 1}
+                </div>
+                
+                {/* Content */}
+                <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] bg-gray-800 p-5 rounded-xl border border-gray-700 shadow-xl transition-all hover:border-blue-500/50">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-bold text-blue-400">Phase {i+1}</span>
+                    <Clock size={16} className="text-gray-500" />
+                  </div>
+                  <p className="text-gray-300 leading-relaxed">{item}</p>
+                  
+                  <div className="mt-4 pt-4 border-t border-gray-700 flex items-center gap-2 text-sm text-gray-400">
+                    <BookOpen size={16} /> Recommended Practice: 10 Questions
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      </main>
+    </div>
+  );
 };
+
+const TargetIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-400"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+);
 
 export default Plan;

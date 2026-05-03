@@ -1,122 +1,149 @@
-import { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import Header from '../components/Header';
-import { useAuth } from '../context/AuthContext';
-import { motion } from 'framer-motion';
+import axios from 'axios';
+import { 
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
+  LineChart, Line, CartesianGrid
+} from 'recharts';
+import { BookOpen, TrendingUp, Target, Loader2, AlertTriangle, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { BrainCircuit, UploadCloud, History, ArrowUpRight, FileText } from 'lucide-react';
-import { assessmentAPI, planAPI, ragAPI } from '../api/client';
-import './Dashboard.css';
+
+const COLORS = {
+  High: '#ef4444', 
+  Medium: '#f59e0b', 
+  Low: '#10b981'
+};
 
 const Dashboard = () => {
-    const { user } = useAuth();
-    const [stats, setStats] = useState([
-        { label: "Assessments", value: "0", icon: <BrainCircuit size={24} /> },
-        { label: "Recovery Plans", value: "0", icon: <FileText size={24} /> },
-        { label: "PYQs Processed", value: "0", icon: <UploadCloud size={24} /> },
-    ]);
-    const [loading, setLoading] = useState(true);
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        const fetchData = async () => {
-            if (!user) {
-                setLoading(false);
-                return;
-            }
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const res = await axios.get('http://localhost:8000/api/dashboard');
+        setData(res.data);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
-            try {
-                const [assessmentsRes, plansRes, ragStatsRes] = await Promise.all([
-                    assessmentAPI.getUserHistory(),
-                    planAPI.getUserHistory(),
-                    ragAPI.getStats()
-                ]);
-
-                // Update stats based on real data
-                const assessmentCount = assessmentsRes.data?.length || 0;
-                const planCount = plansRes.data?.length || 0;
-                const pyqCount = ragStatsRes.data?.unique_documents || 0;
-
-                setStats([
-                    { label: "Assessments", value: assessmentCount.toString(), icon: <BrainCircuit size={24} /> },
-                    { label: "Recovery Plans", value: planCount.toString(), icon: <FileText size={24} /> },
-                    { label: "PYQs Processed", value: pyqCount.toString(), icon: <UploadCloud size={24} /> },
-                ]);
-            } catch (error) {
-                console.error("Error fetching dashboard data:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchData();
-    }, [user]);
-
+  if (loading) {
     return (
-        <div className="dashboard-page">
-            <Header />
-            <main className="dashboard-content container">
-                <motion.div 
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="welcome-section"
-                >
-                    <h1 className="welcome-title">
-                        WELCOME BACK, <span className="highlight-text">{user?.displayName?.split(' ')[0] || 'SCHOLAR'}</span>
-                    </h1>
-                    <p className="welcome-subtitle">
-                        Academic recovery systems operational. 
-                        Select a protocol to proceed.
-                    </p>
-                </motion.div>
-
-                <div className="dashboard-grid">
-                    <section className="stats-col">
-                        {stats.map((stat, i) => (
-                            <motion.div 
-                                key={i}
-                                initial={{ opacity: 0, x: -20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: i * 0.1 }}
-                                className="stat-card box-border"
-                            >
-                                <div className="stat-icon">{stat.icon}</div>
-                                <div className="stat-value">{loading ? "..." : stat.value}</div>
-                                <div className="stat-label">{stat.label}</div>
-                            </motion.div>
-                        ))}
-                    </section>
-
-                    <section className="actions-col">
-                        <Link to="/assessment" className="action-card large accent-border">
-                            <div className="action-header">
-                                <BrainCircuit className="action-icon" />
-                                <h2>NEW ASSESSMENT</h2>
-                            </div>
-                            <p>Generate a new syllabus recovery plan based on gap analysis.</p>
-                            <ArrowUpRight className="arrow-icon" />
-                        </Link>
-                        
-                        <div className="sub-actions">
-                            <Link to="/upload-pyq" className="action-card small">
-                                <div className="action-header">
-                                    <UploadCloud className="action-icon" />
-                                    <h3>UPLOAD PYQ</h3>
-                                </div>
-                                <ArrowUpRight className="arrow-icon" />
-                            </Link>
-
-                            <Link to="/history" className="action-card small">
-                                <div className="action-header">
-                                    <History className="action-icon" />
-                                    <h3>HISTORY</h3>
-                                </div>
-                                <ArrowUpRight className="arrow-icon" />
-                            </Link>
-                        </div>
-                    </section>
-                </div>
-            </main>
-        </div>
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center text-white">
+        <Loader2 className="animate-spin h-10 w-10 text-blue-500" />
+      </div>
     );
+  }
+
+  if (!data) {
+    return (
+      <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center justify-center">
+        <AlertTriangle className="h-16 w-16 text-yellow-500 mb-4" />
+        <h2 className="text-2xl font-bold">No Analysis Found</h2>
+        <p className="text-gray-400 mt-2">Please upload a past paper first.</p>
+        <Link to="/upload" className="mt-6 bg-blue-600 px-6 py-2 rounded-lg font-medium">Go to Upload</Link>
+      </div>
+    );
+  }
+
+  const { topics, data: dashboardMetrics } = data;
+
+  return (
+    <div className="min-h-screen bg-gray-900 text-white font-sans pb-10">
+      <Header />
+      <main className="container mx-auto px-4 py-8 max-w-6xl">
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-3xl font-bold">Exam Analysis Dashboard</h1>
+            <p className="text-gray-400">AI-generated insights from your uploaded past papers</p>
+          </div>
+          <Link to="/plan/generate" className="flex items-center gap-2 bg-blue-600 py-3 px-6 rounded-lg font-bold hover:bg-blue-700 shadow-md transition-colors">
+            Generate Study Plan <ArrowRight size={18} />
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div className="bg-gray-800 p-6 rounded-xl border border-gray-700 flex items-center gap-4">
+              <div className="p-4 bg-blue-500/20 rounded-lg text-blue-400"><BookOpen size={28}/></div>
+              <div>
+                <p className="text-gray-400 text-sm">Identified Topics</p>
+                <p className="text-3xl font-bold text-white">{topics.length}</p>
+              </div>
+            </div>
+            <div className="bg-gray-800 p-6 rounded-xl border border-gray-700 flex items-center gap-4">
+              <div className="p-4 bg-green-500/20 rounded-lg text-green-400"><Target size={28}/></div>
+              <div>
+                <p className="text-gray-400 text-sm">Syllabus Coverage</p>
+                <p className="text-3xl font-bold text-white">{dashboardMetrics.syllabus_coverage}%</p>
+              </div>
+            </div>
+            <div className="bg-gray-800 p-6 rounded-xl border border-gray-700 flex items-center gap-4">
+              <div className="p-4 bg-purple-500/20 rounded-lg text-purple-400"><TrendingUp size={28}/></div>
+              <div>
+                <p className="text-gray-400 text-sm">Total Questions Analyzed</p>
+                <p className="text-3xl font-bold text-white">
+                  {dashboardMetrics.year_trend.reduce((acc, curr) => acc + curr.count, 0)}
+                </p>
+              </div>
+            </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Topic Frequency Chart */}
+          <div className="bg-gray-800 p-6 rounded-xl border border-gray-700">
+            <h2 className="text-xl font-bold mb-6">Topic Frequency (Weighted)</h2>
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={topics} layout="vertical" margin={{ top: 0, right: 0, left: 40, bottom: 0 }}>
+                  <XAxis type="number" stroke="#9ca3af" />
+                  <YAxis dataKey="topic" type="category" stroke="#9ca3af" width={100} tick={{fill: '#9ca3af', fontSize: 12}} />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: '#1f2937', border: 'none', borderRadius: '8px', color: '#fff' }}
+                    itemStyle={{ color: '#fff' }}
+                  />
+                  <Bar dataKey="frequency" radius={[0, 4, 4, 0]}>
+                    {topics.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[entry.priority] || '#3b82f6'} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="flex gap-4 justify-center mt-4 text-sm text-gray-400">
+              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-red-500"></span> High Priority</span>
+              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-yellow-500"></span> Medium</span>
+              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-green-500"></span> Low</span>
+            </div>
+          </div>
+
+          {/* Year Trend Chart */}
+          <div className="bg-gray-800 p-6 rounded-xl border border-gray-700">
+            <h2 className="text-xl font-bold mb-6">Year-on-Year Trend</h2>
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={dashboardMetrics.year_trend}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" vertical={false} />
+                  <XAxis dataKey="year" stroke="#9ca3af" tick={{fill: '#9ca3af'}} />
+                  <YAxis stroke="#9ca3af" tick={{fill: '#9ca3af'}} />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: '#1f2937', border: 'none', borderRadius: '8px' }}
+                    labelStyle={{ color: '#9ca3af' }}
+                  />
+                  <Line type="monotone" dataKey="count" stroke="#8b5cf6" strokeWidth={4} dot={{ r: 6, fill: '#8b5cf6', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 8 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  );
 };
 
 export default Dashboard;

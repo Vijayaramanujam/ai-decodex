@@ -7,7 +7,7 @@ import Landing from './pages/Landing';
 import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
 import Assessment from './pages/Assessment';
-import UploadPYQ from './pages/UploadPYQ';
+import UploadPage from './pages/UploadPage';
 import NotFound from './pages/NotFound';
 import Plan from './pages/Plan';
 import History from './pages/History';
@@ -88,13 +88,13 @@ function App() {
                         </ProtectedRoute>
                     } />
                     
-                    <Route path="/upload-pyq" element={
+                    <Route path="/upload" element={
                         <ProtectedRoute>
-                            <UploadPYQ />
+                            <UploadPage />
                         </ProtectedRoute>
                     } />
 
-                    <Route path="/plan/:planId" element={
+                    <Route path="/plan/:planId?" element={
                         <ProtectedRoute>
                             <Plan />
                         </ProtectedRoute>
