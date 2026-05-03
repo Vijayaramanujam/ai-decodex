@@ -36,20 +36,9 @@ ExamIntel is an AI-powered academic recovery system that transforms **Past Year 
 - **100% Self-Hosted**: Full Docker containerization with no vendor lock-in
 
 ---
+## 🚀 Live Application
 
-## Team Details
-
-**Team Name:** The Build Guild
-
-**Team Members:**
-1. Sandipan Singh
-2. Zulekha Aalmi
-3. Ashutosh Jha
-4. Karman Singh Chandhok
-
-**Problem Statement:** PS-03 - AMU Academic Recovery Engine  
-**Hackathon:** AMUHACKS5.0
-
+🔗 [ExamIntel Study Planner](https://extraordinary-froyo-234872.netlify.app/study-plan)
 ---
 
 ## Problem Statement
