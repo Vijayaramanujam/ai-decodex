@@ -749,11 +749,6 @@ TheBuildGuild_AMUHACKS5.0/
 
 ---
 
-## Contact
-
-**Team: The Build Guild**  
-**Hackathon:** AMUHACKS5.0  
-**Problem Statement:** PS-03
 
 ---
 
